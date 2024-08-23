@@ -8,6 +8,10 @@
 bash <(curl -Ls https://github.com/eooce/xray-2go/raw/main/xray_2go.sh)
 ```
 
+带变量运行示例,修改为自己需要定义的参数
+```
+CADDY_PORT=8888 CFIP=www.visa.com.tw CFPORT=8443 bash <(curl -Ls https://github.com/eooce/xray-2go/raw/main/xray_2go.sh)
+```
 
 # 免责声明
 * 本程序仅供学习了解, 非盈利目的，请于下载后 24 小时内删除, 不得用作任何商业用途, 文字、数据及图片均有所属版权, 如转载须注明来源。
