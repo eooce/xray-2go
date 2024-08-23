@@ -361,45 +361,6 @@ $work_dir/qrencode "http://$IP:$CADDY_PORT/$password"
 
 }
 
-# 如果系统中已存在caddy则先停止
-# check_caddy_exist() {
-# if command -v caddy >/dev/null 2>&1; then
-#     green "caddy 已安装 "
-#     if [ -f /etc/alpine-release ]; then
-#         rc-service caddy stop
-#         cp /etc/init.d/caddy /etc/init.d/caddy-xray
-#         sed -i \
-#         -e "s|description=\"caddy http and reverse proxy server\"|description=\"caddy Xray instance http and reverse proxy server\"|" \
-#         -e "s|cfgfile=\${cfgfile:-/etc/caddy/caddy.conf}|cfgfile=\${cfgfile:-/etc/xray/caddy.conf}|" \
-#         -e "s|pidfile=/run/caddy/caddy.pid|pidfile=/run/caddy-xray.pid|" \
-#         -e "s|command_args=\"-c \$cfgfile\"|command_args=\"-c \$cfgfile -g 'daemon on; master_process on;'\"|" \
-#         /etc/init.d/caddy-xray 
-#     else
-#         systemctl stop caddy
-#         cp /lib/systemd/system/caddy.service /etc/systemd/system/caddy-xray.service
-#         sed -i \
-#         -e "s|^PIDFile=.*|PIDFile=/run/caddy-xray.pid|" \
-#         -e "s|^ExecStartPre=.*|ExecStartPre=/usr/sbin/caddy -t -q -c /etc/xray/caddy.conf -g 'daemon on; master_process on;'|" \
-#         -e "s|^ExecStart=.*|ExecStart=/usr/sbin/caddy -c /etc/xray/caddy.conf -g 'daemon on; master_process on;'|" \
-#         -e "s|^ExecReload=.*|ExecReload=/usr/sbin/caddy -c /etc/xray/caddy.conf -g 'daemon on; master_process on;' -s reload|" \ 
-#         -e "s|^ExecStop=.*|ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/caddy-xray.pid|" \
-#         /etc/systemd/system/caddy-xray.service
-#     fi
-# else
-#     fix_caddy
-#     manage_packages install caddy
-# fi
-# }
-
-# # 修复caddy因host无法安装的问题
-# fix_caddy() {
-#     HOSTNAME=$(hostname)
-#     caddy_CONFIG_FILE="/etc/caddy/caddy.conf"
-#     grep -q "127.0.1.1 $HOSTNAME" /etc/hosts || echo "127.0.1.1 $HOSTNAME" | tee -a /etc/hosts >/dev/null
-#     id -u caddy >/dev/null 2>&1 || useradd -r -d /var/www -s /sbin/nologin caddy >/dev/null 2>&1
-#     grep -q "^user caddy;" $caddy_CONFIG_FILE || sed -i "s/^user .*/user caddy;/" $caddy_CONFIG_FILE >/dev/null 2>&1
-# }
-
 # caddy订阅配置
 add_caddy_conf() {
 [ -f /etc/caddy/Caddyfile ] && cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak
@@ -691,20 +652,20 @@ uninstall_xray() {
 }
 
 # 创建快捷指令
-# create_shortcut() {
-#   cat > "$work_dir/2go.sh" << EOF
-# #!/usr/bin/env bash
+create_shortcut() {
+  cat > "$work_dir/2go.sh" << EOF
+#!/usr/bin/env bash
 
-# bash <(curl -Ls curl -Ls https://raw.githubusercontent.com/eooce/scripts/master/xray_2go.sh) \$1
-# EOF
-#   chmod +x "$work_dir/2go.sh"
-#   ln -sf "$work_dir/2go.sh" /usr/bin/2go
-#   if [ -s /usr/bin/2go ]; then
-#     green "\n2go 快捷指令创建成功\n"
-#   else
-#     red "\n2go 快捷指令创建失败\n"
-#   fi
-# }
+bash <(curl -Ls curl -Ls https://raw.githubusercontent.com/eooce/xray_2go/main/xray_2go.sh) \$1
+EOF
+  chmod +x "$work_dir/2go.sh"
+  ln -sf "$work_dir/2go.sh" /usr/bin/2go
+  if [ -s /usr/bin/2go ]; then
+    green "\n2go 快捷指令创建成功\n"
+  else
+    red "\n2go 快捷指令创建失败\n"
+  fi
+}
 
 # 适配alpine运行argo报错用户组和dns的问题
 change_hosts() {
