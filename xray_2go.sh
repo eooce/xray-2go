@@ -1089,7 +1089,7 @@ while true; do
                 sleep 5
                 get_info
                 add_caddy_conf
-                # create_shortcut
+                create_shortcut
             fi
            ;;
         2) uninstall_xray ;;
