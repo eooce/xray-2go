@@ -677,100 +677,120 @@ change_hosts() {
 
 # 变更配置
 change_config() {
-if [ ${check_xray} -eq 0 ]; then
-    clear
-    echo ""
-    green "1. 修改端口"
-    skyblue "------------"
-    green "2. 修改UUID"
-    skyblue "------------"
-    green "3. 修改Reality伪装域名"
-    skyblue "------------"
-    purple "${purple}4. 返回主菜单"
-    skyblue "------------"
-    reading "请输入选择: " choice
-    case "${choice}" in
-        1)
-            echo ""
-            green "1. 修改ARGO端口"
-            skyblue "------------"
-            green "2. 修改grpc-reality端口"
-            skyblue "------------"
-            purple "3. 返回上一级菜单"
-            skyblue "------------"
-            reading "请输入选择: " choice
-            case "${choice}" in
-                1)  yellow "该功能尚未添加"
-                    ;;
-                2)
-                    reading "\n请输入grpc-reality端口 (回车跳过将使用随机端口): " new_port
-                    [ -z "$new_port" ] && new_port=$(shuf -i 2000-65000 -n 1)
-                    sed -i '/"type": "vless"/,/listen_port/ s/"listen_port": [0-9]\+/"listen_port": '"$new_port"'/' $config_dir
-                    restart_xray
-                    sed -i 's/\(vless:\/\/[^@]*@[^:]*:\)[0-9]\{1,\}/\1'"$new_port"'/' $client_dir
-                    base64 -w0 /etc/sing-box/url.txt > /etc/sing-box/sub.txt
-                    while IFS= read -r line; do yellow "$line"; done < ${work_dir}/url.txt
-                    green "\nvless-reality端口已修改成：${purple}$new_port${re} ${green}请更新订阅或手动更改vless-reality端口${re}\n"
-                    ;;
-                3)  change_config ;;
-                *)  red "无效的选项，请输入 1 到 3" ;;
-            esac
-            ;;
-        2)
-            reading "\n请输入新的UUID: " new_uuid
-            [ -z "$new_uuid" ] && new_uuid=$(cat /proc/sys/kernel/random/uuid)
-            sed -i -E '
-                s/"uuid": "([a-f0-9-]+)"/"uuid": "'"$new_uuid"'"/g;
-                s/"uuid": "([a-f0-9-]+)"$/\"uuid\": \"'$new_uuid'\"/g;
-                s/"password": "([a-f0-9-]+)"/"password": "'"$new_uuid"'"/g
-            ' $config_dir
-
-            restart_xray
-            sed -i -E 's/(vless:\/\/|vmess:\/\/)[^@]*(@.*)/\1'"$new_uuid"'\2/' $client_dir
-            sed -i "s/tuic:\/\/[0-9a-f\-]\{36\}/tuic:\/\/$new_uuid/" /etc/xray/url.txt
-            isp=$(curl -s https://speed.cloudflare.com/meta | awk -F\" '{print $26"-"$18}' | sed -e 's/ /_/g')
-            argodomain=$(grep -oE 'https://[[:alnum:]+\.-]+\.trycloudflare\.com' "${work_dir}/argo.log" | sed 's@https://@@')
-            VMESS="{ \"v\": \"2\", \"ps\": \"${isp}\", \"add\": \"www.visa.com.sg\", \"port\": \"443\", \"id\": \"${new_uuid}\", \"aid\": \"0\", \"scy\": \"none\", \"net\": \"ws\", \"type\": \"none\", \"host\": \"${argodomain}\", \"path\": \"/vmess?ed=2048\", \"tls\": \"tls\", \"sni\": \"${argodomain}\", \"alpn\": \"\", \"fp\": \"randomized\", \"allowlnsecure\": \"flase\"}"
-            encoded_vmess=$(echo "$VMESS" | base64 -w0)
-            sed -i -E '/vmess:\/\//{s@vmess://.*@vmess://'"$encoded_vmess"'@}' $client_dir
-            base64 -w0 $client_dir > /etc/etc/sub.txt
-            while IFS= read -r line; do yellow "$line"; done < ${work_dir}/url.txt
-            green "\nUUID已修改为：${purple}${new_uuid}${re} ${green}请更新订阅或手动更改所有节点的UUID${re}\n"
-            ;;
-        3)  
-            clear
-            green "\n1. bgk.jp\n\n2. www.joom.com\n\n3. www.stengg.com\n\n4. www.nazhumi.com\n"  
-            reading "\n请输入新的Reality伪装域名(可自定义输入,回车留空将使用默认1): " new_sni
-                if [ -z "$new_sni" ]; then    
-                    new_sni="bgk.jp"
-                elif [[ "$new_sni" == "1" ]]; then
-                    new_sni="bgk.jp"
-                elif [[ "$new_sni" == "2" ]]; then
-                    new_sni="www.joom.com"
-                elif [[ "$new_sni" == "3" ]]; then
-                    new_sni="www.stengg.com"
-                elif [[ "$new_sni" == "4" ]]; then
-                    new_sni="www.nazhumi.com"
+clear
+echo ""
+green "1. 修改端口"
+skyblue "------------"
+green "2. 修改UUID"
+skyblue "------------"
+green "3. 修改Reality伪装域名"
+skyblue "------------"
+purple "${purple}4. 返回主菜单"
+skyblue "------------"
+reading "请输入选择: " choice
+case "${choice}" in
+    1)
+        echo ""
+        green "1. 修改ARGO端口"
+        skyblue "------------"
+        green "2. 修改grpc-reality端口"
+        skyblue "------------"
+        purple "3. 返回上一级菜单"
+        skyblue "------------"
+        reading "请输入选择: " choice
+        case "${choice}" in
+            1)  
+                reading "\n请输入ARGO端口 (回车跳过将使用随机端口): " argo_port
+                [ -z "$argo_port" ] && argo_port=$(shuf -i 8000-9000 -n 1)
+                green "你的ARGO端口为：$argo_port"
+                sed -i "5s/[0-9]\{1,5\}/$argo_port/" /etc/xray/config.json
+                if [ -e "/etc/xray/tunnel.yml" ]; then
+                    sed -i 's|\(service: http://localhost:\)[0-9]\{1,5\}|\1'"$argo_port"'|' /etc/xray/tunnel.yml
                 else
-                    new_sni="$new_sni"
+                    if grep -q '--url http://localhost' /etc/init.d/tunnel 2>/dev/null || grep -q 'ExecStart=.*--url http://localhost' /etc/systemd/system/tunnel.service 2>/dev/null; then
+                        sed -i 's|\(http://localhost:\)[0-9]\{1,5\}|\1'"$argo_port"'|' /etc/systemd/system/tunnel.service
+                        restart_argo
+                        get_quick_tunnel
+                        change_argo_domain
+                    else
+                        yellow "你当前使用固定隧道隧道token，请在cloudflared后台修改隧道端口为：$argo_port"
+                        restart_argo
+                    fi
                 fi
-                jq --arg new_sni "$new_sni" '.inbounds[5].streamSettings.realitySettings.dest = ($new_sni + ":443") | .inbounds[5].streamSettings.realitySettings.serverNames = [$new_sni]' /etc/xray/config.json > /etc/xray/config.json.tmp && mv /etc/xray/config.json.tmp /etc/xray/config.json
-                restart_xray 
-                sed -i "1s/\(vless:\/\/[^\?]*\?\([^\&]*\&\)*sni=\)[^&]*/\1$new_sni/" $client_dir
-                sed -i "1s/\(vless:\/\/[^\?]*\?\([^\&]*\&\)*authority=\)[^&]*/\1$new_sni/" $client_dir
+                green "ARGO 端口已修改\n"
+                ;;
+            2)
+                reading "\n请输入grpc-reality端口 (回车跳过将使用随机端口): " new_port
+                [ -z "$new_port" ] && new_port=$(shuf -i 2000-65000 -n 1)
+                until [[ -z $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$new_port") ]]; do
+                    if [[ -n $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$new_port") ]]; then
+                        echo -e "${red}${new_port}端口已经被其他程序占用，请更换端口重试${re}"
+                        reading "请输入新的订阅端口(1-65535):" new_port
+                        [[ -z $new_port ]] && new_port=$(shuf -i 2000-65000 -n 1)
+                    fi
+                done
+                sed -i "41s/[0-9]\{1,5\}/$new_port/" /etc/xray/config.json
+                restart_xray
+                sed -i '1s/\(vless:\/\/[^@]*@[^:]*:\)[0-9]\{1,\}/\1'"$new_port"'/' $client_dir
                 base64 -w0 $client_dir > /etc/xray/sub.txt
                 while IFS= read -r line; do yellow "$line"; done < ${work_dir}/url.txt
-                echo ""
-                green "\nReality sni已修改为：${purple}${new_sni}${re} ${green}请更新订阅或手动更改reality节点的sni域名${re}\n"
-            ;; 
-        4)  menu ;;
-        *)  read "无效的选项！" ;; 
-    esac
-else
-    yellow "xray—2go 尚未安装！"
-    sleep 1
-    menu
-fi
+                green "\nGRPC-reality端口已修改成：${purple}$new_port${re} ${green}请更新订阅或手动更改grpc-reality节点端口${re}\n"
+                ;;
+            3)  change_config ;;
+            *)  red "无效的选项，请输入 1 到 3" ;;
+        esac
+        ;;
+    2)
+        reading "\n请输入新的UUID: " new_uuid
+        [ -z "$new_uuid" ] && new_uuid=$(cat /proc/sys/kernel/random/uuid)
+        sed -i "s/[a-fA-F0-9]\{8\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{12\}/$new_uuid/g" $config_dir
+        restart_xray
+        sed -i "s/[a-fA-F0-9]\{8\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{12\}/$new_uuid/g" $client_dir
+        content=$(cat "$client_dir")
+        vmess_urls=$(grep -o 'vmess://[^ ]*' "$client_dir")
+        vmess_prefix="vmess://"
+        for vmess_url in $vmess_urls; do
+            encoded_vmess="${vmess_url#"$vmess_prefix"}"
+            decoded_vmess=$(echo "$encoded_vmess" | base64 --decode)
+            updated_vmess=$(echo "$decoded_vmess" | jq --arg new_uuid "$new_uuid" '.id = $new_uuid')
+            encoded_updated_vmess=$(echo "$updated_vmess" | base64 | tr -d '\n')
+            new_vmess_url="$vmess_prefix$encoded_updated_vmess"
+            content=$(echo "$content" | sed "s|$vmess_url|$new_vmess_url|")
+        done
+        echo "$content" > "$client_dir"
+        base64 -w0 $client_dir > /etc/xray/sub.txt
+        while IFS= read -r line; do yellow "$line"; done < $client_dir
+        green "\nUUID已修改为：${purple}${new_uuid}${re} ${green}请更新订阅或手动更改所有节点的UUID${re}\n"
+        ;;
+    3)  
+        clear
+        green "\n1. bgk.jp\n\n2. www.joom.com\n\n3. www.stengg.com\n\n4. www.nazhumi.com\n"  
+        reading "\n请输入新的Reality伪装域名(可自定义输入,回车留空将使用默认1): " new_sni
+            if [ -z "$new_sni" ]; then    
+                new_sni="bgk.jp"
+            elif [[ "$new_sni" == "1" ]]; then
+                new_sni="bgk.jp"
+            elif [[ "$new_sni" == "2" ]]; then
+                new_sni="www.joom.com"
+            elif [[ "$new_sni" == "3" ]]; then
+                new_sni="www.stengg.com"
+            elif [[ "$new_sni" == "4" ]]; then
+                new_sni="www.nazhumi.com"
+            else
+                new_sni="$new_sni"
+            fi
+            jq --arg new_sni "$new_sni" '.inbounds[5].streamSettings.realitySettings.dest = ($new_sni + ":443") | .inbounds[5].streamSettings.realitySettings.serverNames = [$new_sni]' /etc/xray/config.json > /etc/xray/config.json.tmp && mv /etc/xray/config.json.tmp /etc/xray/config.json
+            restart_xray 
+            sed -i "1s/\(vless:\/\/[^\?]*\?\([^\&]*\&\)*sni=\)[^&]*/\1$new_sni/" $client_dir
+            sed -i "1s/\(vless:\/\/[^\?]*\?\([^\&]*\&\)*authority=\)[^&]*/\1$new_sni/" $client_dir
+            base64 -w0 $client_dir > /etc/xray/sub.txt
+            while IFS= read -r line; do yellow "$line"; done < ${work_dir}/url.txt
+            echo ""
+            green "\nReality sni已修改为：${purple}${new_sni}${re} ${green}请更新订阅或手动更改reality节点的sni域名${re}\n"
+        ;; 
+    4)  menu ;;
+    *)  read "无效的选项！" ;; 
+esac
 }
 
 disable_open_sub() {
@@ -812,7 +832,6 @@ if [ ${check_xray} -eq 0 ]; then
 
         3)
             reading "请输入新的订阅端口(1-65535):" sub_port
-            manage_packages install netstat && clear
             [ -z "$sub_port" ] && sub_port=$(shuf -i 2000-65000 -n 1)
             until [[ -z $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$sub_port") ]]; do
                 if [[ -n $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$sub_port") ]]; then
@@ -905,9 +924,9 @@ ingress:
   - service: http_status:404
 EOF
                 if [ -f /etc/alpine-release ]; then
-                    sed -i '/^command_args=/c\command_args="-c '\''/etc/xray/argo tunnel --edge-ip-version auto --config /etc/sing-box/tunnel.yml run 2>&1'\''"' /etc/init.d/tunnel
+                    sed -i '/^command_args=/c\command_args="-c '\''/etc/xray/argo tunnel --edge-ip-version auto --config /etc/xray/tunnel.yml run 2>&1'\''"' /etc/init.d/tunnel
                 else
-                    sed -i '/^ExecStart=/c ExecStart=/bin/sh -c "/etc/xray/argo tunnel --edge-ip-version auto --config /etc/sing-box/tunnel.yml run 2>&1"' /etc/systemd/system/tunnel.service
+                    sed -i '/^ExecStart=/c ExecStart=/bin/sh -c "/etc/xray/argo tunnel --edge-ip-version auto --config /etc/xray/tunnel.yml run 2>&1"' /etc/systemd/system/tunnel.service
                 fi
                 restart_argo
                 change_argo_domain
@@ -981,7 +1000,6 @@ change_argo_domain() {
     content=$(cat "$client_dir")
     vmess_urls=$(grep -o 'vmess://[^ ]*' "$client_dir")
     vmess_prefix="vmess://"
-
     for vmess_url in $vmess_urls; do
         encoded_vmess="${vmess_url#"$vmess_prefix"}"
         decoded_vmess=$(echo "$encoded_vmess" | base64 --decode)
