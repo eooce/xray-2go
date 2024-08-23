@@ -662,9 +662,9 @@ EOF
   chmod +x "$work_dir/2go.sh"
   ln -sf "$work_dir/2go.sh" /usr/bin/2go
   if [ -s /usr/bin/2go ]; then
-    green "\n2go 快捷指令创建成功\n"
+    green "\n快捷指令 2go 创建成功\n"
   else
-    red "\n2go 快捷指令创建失败\n"
+    red "\n快捷指令创建失败\n"
   fi
 }
 
@@ -729,7 +729,7 @@ case "${choice}" in
                         [[ -z $new_port ]] && new_port=$(shuf -i 2000-65000 -n 1)
                     fi
                 done
-                sed -i "41s/[0-9]\{1,5\}/$new_port/" /etc/xray/config.json
+                sed -i "41s/\"port\":\s*[0-9]\+/\"port\": $new_port/" /etc/xray/config.json
                 restart_xray
                 sed -i '1s/\(vless:\/\/[^@]*@[^:]*:\)[0-9]\{1,\}/\1'"$new_port"'/' $client_dir
                 base64 -w0 $client_dir > /etc/xray/sub.txt
