@@ -24,8 +24,8 @@ export UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid)}
 export CADDY_PORT=${CADDY_PORT:-$(shuf -i 1000-60000 -n 1)}
 export ARGO_DOMAIN=${ARGO_DOMAIN:-''}   
 export ARGO_AUTH=${ARGO_AUTH:-''} 
-export CFIP=${CFIP:-'www.visa.com.tw'} 
-export CFPORT=${CFPORT:-'8443'}   
+export CFIP=${CFIP:-'aliyun.2096.us.kg'} 
+export CFPORT=${CFPORT:-'2096'}   
 export ARGO_PORT=${ARGO_PORT:-'8080'}
 
 # 检查是否为root下运行
@@ -345,7 +345,7 @@ get_info() {
   yellow "\n温馨提醒：NAT机需将订阅端口更改为可用端口范围内的端口,否则无法订阅\n"
 
   cat > ${work_dir}/url.txt <<EOF
-vless://${UUID}@${IP}:${GRPC_PORT}??encryption=none&security=reality&sni=www.stengg.com&fp=chrome&pbk=${public_key}&allowInsecure=1&type=grpc&authority=www.stengg.com&serviceName=grpc&mode=gun#${isp}
+vless://${UUID}@${IP}:${GRPC_PORT}??encryption=none&security=reality&sni=www.iij.ad.jp&fp=chrome&pbk=${public_key}&allowInsecure=1&type=grpc&authority=www.iij.ad.jp&serviceName=grpc&mode=gun#${isp}
 
 vless://${UUID}@${CFIP}:${CFPORT}?encryption=none&security=tls&sni=${argodomain}&type=ws&host=${argodomain}&path=%2Fvless%3Fed%3D2048#${isp}
 
@@ -358,8 +358,9 @@ while IFS= read -r line; do echo -e "${purple}$line"; done < ${work_dir}/url.txt
 base64 -w0 ${work_dir}/url.txt > ${work_dir}/sub.txt
 green "\n节点订阅链接：http://$IP:$CADDY_PORT/$password\n\n订阅链接适用于V2rayN,Nekbox,karing,Sterisand,Loon,小火箭,圈X等\n"
 $work_dir/qrencode "http://$IP:$CADDY_PORT/$password"
-
+echo ""
 }
+
 
 # caddy订阅配置
 add_caddy_conf() {
@@ -656,7 +657,7 @@ create_shortcut() {
   cat > "$work_dir/2go.sh" << EOF
 #!/usr/bin/env bash
 
-bash <(curl -Ls curl -Ls https://raw.githubusercontent.com/eooce/xray_2go/main/xray_2go.sh) \$1
+bash <(curl -Ls https://github.com/eooce/xray-2go/raw/main/xray_2go.sh) \$1
 EOF
   chmod +x "$work_dir/2go.sh"
   ln -sf "$work_dir/2go.sh" /usr/bin/2go
