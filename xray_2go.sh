@@ -22,10 +22,8 @@ client_dir="${work_dir}/url.txt"
 # 定义环境变量
 export UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid)}
 export CADDY_PORT=${CADDY_PORT:-$(shuf -i 1000-60000 -n 1)}
-export ARGO_DOMAIN=${ARGO_DOMAIN:-''}   
-export ARGO_AUTH=${ARGO_AUTH:-''} 
-export CFIP=${CFIP:-'aliyun.2096.us.kg'} 
-export CFPORT=${CFPORT:-'2096'}   
+export CFIP=${CFIP:-'www.visa.com.tw'} 
+export CFPORT=${CFPORT:-'8443'}   
 export ARGO_PORT=${ARGO_PORT:-'8080'}
 
 # 检查是否为root下运行
@@ -541,7 +539,7 @@ fi
 restart_argo() {
 if [ ${check_argo} -eq 0 ]; then
     yellow "\n正在重启 Argo 服务\n"
-    rm /etc/xray/argo.log
+    rm /etc/xray/argo.log 2>/dev/null
     if [ -f /etc/alpine-release ]; then
         rc-service tunnel restart
     else
@@ -989,7 +987,7 @@ restart_argo
 yellow "获取临时argo域名中，请稍等...\n"
 sleep 6
 get_argodomain=$(grep -oE 'https://[[:alnum:]+\.-]+\.trycloudflare\.com' /etc/xray/argo.log | sed 's@https://@@')
-green "ArgoDomain：${purple}$get_argodomain${re}"
+green "ArgoDomain：${purple}$get_argodomain${re}\n"
 ArgoDomain=$get_argodomain
 }
 
