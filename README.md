@@ -2,7 +2,8 @@
 最好用的一键xray-argo脚本，一键四协议无交互安装脚本！
 * vless-grpc-reality | vless-ws-tls(argo) | vmess-ws-tls(argo) | vmess-splithttp-tls(argo)
 * splithttp目前支持的客户端较少
-* 可选环境变量：UUID CADDY_PORT CFIP CFPORT 自定义变量放脚本前面运行即可 
+* 可选环境变量：UUID CADDY_PORT CFIP CFPORT 自定义变量放脚本前面运行即可
+* NAT小鸡需带CADDY_PORT变量运行或运行完后更改订阅端口和grpc-reality端口
 
 ```
 bash <(curl -Ls https://github.com/eooce/xray-2go/raw/main/xray_2go.sh)
