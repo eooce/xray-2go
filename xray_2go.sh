@@ -355,10 +355,26 @@ echo ""
 while IFS= read -r line; do echo -e "${purple}$line"; done < ${work_dir}/url.txt
 base64 -w0 ${work_dir}/url.txt > ${work_dir}/sub.txt
 green "\n节点订阅链接：http://$IP:$CADDY_PORT/$password\n\n订阅链接适用于V2rayN,Nekbox,karing,Sterisand,Loon,小火箭,圈X等\n"
+green "订阅二维码"
 $work_dir/qrencode "http://$IP:$CADDY_PORT/$password"
 echo ""
 }
 
+# 处理ubuntu系统中没有caddy源的问题
+install_caddy () {
+if [ -f /etc/os-release ] && grep -q "Ubuntu" /etc/os-release; then
+    purple "安装依赖中...\n" && yellow "安装过程中若弹出窗口，回车确认即可" && sleep 2
+    apt install -y debian-keyring debian-archive-keyring apt-transport-https
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    rm /etc/apt/trusted.gpg.d/caddy-stable.asc 
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/caddy-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" | tee /etc/apt/sources.list.d/caddy-stable.list
+    apt update -y && manage_packages install caddy
+else
+    manage_packages install caddy
+fi
+}
 
 # caddy订阅配置
 add_caddy_conf() {
@@ -400,7 +416,7 @@ if [ $? -eq 0 ]; then
         systemctl restart caddy
     fi
 else
-    red "Caddy 配置文件验证失败，请检查配置。\nissues 反馈：https://github.com/eooce/xray-argo/issues\n"
+    red "Caddy 配置文件验证失败，请检查配置，订阅共能无法使用。\nissues 反馈：https://github.com/eooce/xray-argo/issues\n"
 fi
 }
 
@@ -1069,7 +1085,8 @@ while true; do
             if [ ${check_xray} -eq 0 ]; then
                 yellow "Xray-2go 已经安装！"
             else
-                manage_packages install caddy jq unzip iptables openssl
+                install_caddy
+                manage_packages install jq unzip iptables openssl
                 install_xray
 
                 if [ -x "$(command -v systemctl)" ]; then
