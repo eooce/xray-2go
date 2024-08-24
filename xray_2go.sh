@@ -410,13 +410,13 @@ EOF
 
 if [ $? -eq 0 ]; then
     if [ -f /etc/alpine-release ]; then
-        rc-service caddy restart
+        rc-service caddy start
     else
         systemctl daemon-reload
         systemctl restart caddy
     fi
 else
-    red "Caddy 配置文件验证失败，请检查配置，订阅共能无法使用。\nissues 反馈：https://github.com/eooce/xray-argo/issues\n"
+    red "Caddy 配置文件验证失败，订阅功能可能无法使用，但不影响节点使用\nissues 反馈：https://github.com/eooce/xray-argo/issues\n"
 fi
 }
 
