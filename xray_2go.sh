@@ -363,7 +363,7 @@ echo ""
 # 处理ubuntu系统中没有caddy源的问题
 install_caddy () {
 if [ -f /etc/os-release ] && grep -q "Ubuntu" /etc/os-release; then
-    purple "安装依赖中...\n" && yellow "安装过程中若弹出窗口，回车确认即可" && sleep 2
+    purple "安装依赖中...\n" && yellow "Ubuntu系统特殊原因，安装过程中若弹出窗口，回车确认即可" && sleep 2
     apt install -y debian-keyring debian-archive-keyring apt-transport-https
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
@@ -372,7 +372,7 @@ if [ -f /etc/os-release ] && grep -q "Ubuntu" /etc/os-release; then
     echo "deb [signed-by=/usr/share/keyrings/caddy-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" | tee /etc/apt/sources.list.d/caddy-stable.list
     apt update -y && manage_packages install caddy
 else
-    manage_packages install caddy
+    manage_packages install caddy 
 fi
 }
 
@@ -410,13 +410,13 @@ EOF
 
 if [ $? -eq 0 ]; then
     if [ -f /etc/alpine-release ]; then
-        rc-service caddy start
+        rc-service caddy restart
     else
         systemctl daemon-reload
         systemctl restart caddy
     fi
 else
-    red "Caddy 配置文件验证失败，订阅功能可能无法使用，但不影响节点使用\nissues 反馈：https://github.com/eooce/xray-argo/issues\n"
+    [ -f /etc/alpine-release ] && rc-service caddy restart > /dev/null 2>&1 || red "Caddy 配置文件验证失败，订阅功能可能无法使用，但不影响节点使用\nissues 反馈：https://github.com/eooce/xray-argo/issues\n"
 fi
 }
 
