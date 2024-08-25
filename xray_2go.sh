@@ -362,7 +362,7 @@ echo ""
 
 # 处理ubuntu系统中没有caddy源的问题
 install_caddy () {
-if [ -f /etc/os-release ] && grep -q "Ubuntu" /etc/os-release; then
+if [ -f /etc/os-release ] && (grep -q "Ubuntu" /etc/os-release || grep -q "Debian GNU/Linux 11" /etc/os-release); then
     purple "安装依赖中...\n" && yellow "Ubuntu系统特殊原因，安装过程中若弹出窗口，回车确认即可" && sleep 2
     apt install -y debian-keyring debian-archive-keyring apt-transport-https
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
