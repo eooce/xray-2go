@@ -972,7 +972,7 @@ EOF
 
         5)  
             if [ -f /etc/alpine-release ]; then
-                if grep -q '--url http://localhost:8080' /etc/init.d/tunnel; then
+                if grep -Fq -- '--url http://localhost:8080' /etc/init.d/tunnel; then
                     get_quick_tunnel
                     change_argo_domain 
                 else
