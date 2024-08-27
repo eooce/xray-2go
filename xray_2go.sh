@@ -652,6 +652,7 @@ uninstall_xray() {
             fi
            # 删除配置文件和日志
            rm -rf "${work_dir}" || true
+	   rm /etc/systemd/system/xray.service /etc/systemd/system/tunnel.service 2>/dev/null	
            
            # 卸载caddy
            reading "\n是否卸载 caddy？${green}(卸载请输入 ${yellow}y${re} ${green}回车将跳过卸载caddy) (y/n): ${re}" choice
