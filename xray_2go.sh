@@ -336,7 +336,8 @@ get_info() {
 
   isp=$(curl -s --max-time 2 https://speed.cloudflare.com/meta | awk -F\" '{print $26"-"$18}' | sed -e 's/ /_/g' || echo "vps")
 
-  argodomain=$(grep -oE 'https://[[:alnum:]+\.-]+\.trycloudflare\.com' /etc/xray/argo.log | sed 's@https://@@')
+  argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log") || true
+  [ -z "$argodomain" ] && argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' "${work_dir}/argo.log")
 
   echo -e "${green}\nArgoDomain：${re}${purple}$argodomain${re}"
 
@@ -1002,9 +1003,10 @@ get_quick_tunnel() {
 restart_argo
 yellow "获取临时argo域名中，请稍等...\n"
 sleep 6
-get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
-green "ArgoDomain：${purple}$get_argodomain${re}\n"
-ArgoDomain=$get_argodomain
+argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log) || true
+[ -z "$argodomain" ] && argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' /etc/xray/argo.log)
+green "ArgoDomain：${purple}$argodomain${re}\n"
+ArgoDomain=$argodomain
 }
 
 # 更新Argo域名到订阅
