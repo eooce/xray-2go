@@ -336,10 +336,15 @@ get_info() {
 
   isp=$(curl -s --max-time 2 https://speed.cloudflare.com/meta | awk -F\" '{print $26"-"$18}' | sed -e 's/ /_/g' || echo "vps")
 
-  argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log") || true
-  [ -z "$argodomain" ] && argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' "${work_dir}/argo.log")
-
-  echo -e "${green}\nArgoDomain：${re}${purple}$argodomain${re}"
+  if [ -f "${work_dir}/argo.log" ]; then
+      argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
+      [ -z "$argodomain" ] && sleep 2 && argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' "${work_dir}/argo.log")
+      [ -z "$argodomain" ] && restart_argo && sleep 6 && argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
+      [ -z "$argodomain" ] && red "未能获取到Argo临时域名,请运行完毕后进入${yellow}Argo管理${re}菜单重新获取或使用固定隧道"
+  else
+      restart_argo && sleep 8 && argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
+  fi
+  green "ArgoDomain：${purple}$argodomain${re}\n"
 
   yellow "\n温馨提醒：NAT机需将订阅端口更改为可用端口范围内的端口,否则无法订阅\n"
 
@@ -1003,10 +1008,16 @@ get_quick_tunnel() {
 restart_argo
 yellow "获取临时argo域名中，请稍等...\n"
 sleep 6
-argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log) || true
-[ -z "$argodomain" ] && argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' /etc/xray/argo.log)
-green "ArgoDomain：${purple}$argodomain${re}\n"
-ArgoDomain=$argodomain
+if [ -f /etc/xray/argo.log ]; then
+    get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
+    [ -z "$get_argodomain" ] && sleep 2 && get_argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' /etc/xray/argo.log)
+    [ -z "$get_argodomain" ] && restart_argo && sleep 6 && get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
+    [ -z "$get_argodomain" ] red "未能获取到Argo临时域名,请重新获取或使用固定隧道\n"
+else
+    restart_argo && sleep 8 && get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
+fi
+green "ArgoDomain：${purple}$get_argodomain${re}\n"
+ArgoDomain=$get_argodomain
 }
 
 # 更新Argo域名到订阅
