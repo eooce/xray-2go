@@ -1012,7 +1012,7 @@ if [ -f /etc/xray/argo.log ]; then
     get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
     [ -z "$get_argodomain" ] && sleep 2 && get_argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' /etc/xray/argo.log)
     [ -z "$get_argodomain" ] && restart_argo && sleep 6 && get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
-    [ -z "$get_argodomain" ] red "未能获取到Argo临时域名,请重新获取或使用固定隧道\n"
+    [ -z "$get_argodomain" ] && red "未能获取到Argo临时域名,请重新获取或使用固定隧道\n"
 else
     restart_argo && sleep 8 && get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
 fi
