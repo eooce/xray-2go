@@ -21,10 +21,10 @@ config_dir="${work_dir}/config.json"
 client_dir="${work_dir}/url.txt"
 # 定义环境变量
 export UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid)}
-export CADDY_PORT=${CADDY_PORT:-$(shuf -i 1000-60000 -n 1)}
+export PORT=${PORT:-$(shuf -i 1000-60000 -n 1)}
+export ARGO_PORT=${ARGO_PORT:-'8080'}
 export CFIP=${CFIP:-'www.visa.com.tw'} 
 export CFPORT=${CFPORT:-'8443'}   
-export ARGO_PORT=${ARGO_PORT:-'8080'}
 
 # 检查是否为root下运行
 [[ $EUID -ne 0 ]] && red "请在root用户下运行脚本" && exit 1
@@ -168,7 +168,7 @@ install_xray() {
 
    # 生成随机UUID和密码
     password=$(< /dev/urandom tr -dc 'A-Za-z0-9' | head -c 24)
-    GRPC_PORT=$((CADDY_PORT + 1))
+    GRPC_PORT=$((PORT + 1))
 
     # 关闭防火墙
     iptables -A INPUT -p tcp --dport 8080 -j ACCEPT > /dev/null 2>&1
@@ -337,14 +337,18 @@ get_info() {
   isp=$(curl -s --max-time 2 https://speed.cloudflare.com/meta | awk -F\" '{print $26"-"$18}' | sed -e 's/ /_/g' || echo "vps")
 
   if [ -f "${work_dir}/argo.log" ]; then
-      argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
-      [ -z "$argodomain" ] && sleep 2 && argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' "${work_dir}/argo.log")
-      [ -z "$argodomain" ] && restart_argo && sleep 6 && argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
-      [ -z "$argodomain" ] && red "未能获取到Argo临时域名,请运行完毕后进入${yellow}Argo管理${re}菜单重新获取或使用固定隧道"
+      for i in {1..5}; do
+          argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
+          [ -n "$argodomain" ] && break
+          sleep 2
+      done
   else
-      restart_argo && sleep 8 && argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
+      restart_argo
+      sleep 6
+      argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
   fi
-  green "ArgoDomain：${purple}$argodomain${re}\n"
+
+  green "\nArgoDomain：${purple}$argodomain${re}\n"
 
   yellow "\n温馨提醒：NAT机需将订阅端口更改为可用端口范围内的端口,否则无法订阅\n"
 
@@ -360,16 +364,16 @@ EOF
 echo ""
 while IFS= read -r line; do echo -e "${purple}$line"; done < ${work_dir}/url.txt
 base64 -w0 ${work_dir}/url.txt > ${work_dir}/sub.txt
-green "\n节点订阅链接：http://$IP:$CADDY_PORT/$password\n\n订阅链接适用于V2rayN,Nekbox,karing,Sterisand,Loon,小火箭,圈X等\n"
+green "\n节点订阅链接：http://$IP:$PORT/$password\n\n订阅链接适用于V2rayN,Nekbox,karing,Sterisand,Loon,小火箭,圈X等\n"
 green "订阅二维码"
-$work_dir/qrencode "http://$IP:$CADDY_PORT/$password"
+$work_dir/qrencode "http://$IP:$PORT/$password"
 echo ""
 }
 
 # 处理ubuntu系统中没有caddy源的问题
 install_caddy () {
 if [ -f /etc/os-release ] && (grep -q "Ubuntu" /etc/os-release || grep -q "Debian GNU/Linux 11" /etc/os-release); then
-    purple "安装依赖中...\n" && yellow "如果是Ubuntu系统，安装过程中若弹出窗口，回车确认即可" && sleep 2
+    purple "安装依赖中...\n" && yellow "如果是Ubuntu系统，安装过程中若弹出窗口，回车确认即可"
     apt install -y debian-keyring debian-archive-keyring apt-transport-https
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
@@ -398,7 +402,7 @@ rm -rf /etc/caddy/Caddyfile
     }
 }
 
-:$CADDY_PORT {
+:$PORT {
     handle /$password {
         root * /etc/xray
         try_files /sub.txt
@@ -629,7 +633,7 @@ fi
 
 # 卸载 xray
 uninstall_xray() {
-   reading "确定要卸载 xray 吗? (y/n): " choice
+   reading "确定要卸载 xray-2go 吗? (y/n): " choice
    case "${choice}" in
        y|Y)
            yellow "正在卸载 xray"
@@ -652,7 +656,7 @@ uninstall_xray() {
             fi
            # 删除配置文件和日志
            rm -rf "${work_dir}" || true
-	   rm /etc/systemd/system/xray.service /etc/systemd/system/tunnel.service 2>/dev/null	
+	       rm -rf /etc/systemd/system/xray.service /etc/systemd/system/tunnel.service 2>/dev/null	
            
            # 卸载caddy
            reading "\n是否卸载 caddy？${green}(卸载请输入 ${yellow}y${re} ${green}回车将跳过卸载caddy) (y/n): ${re}" choice
@@ -700,70 +704,19 @@ change_hosts() {
 change_config() {
 clear
 echo ""
-green "1. 修改端口"
+green "1. 修改UUID"
 skyblue "------------"
-green "2. 修改UUID"
+green "2. 修改grpc-reality端口"
 skyblue "------------"
-green "3. 修改Reality伪装域名"
+green "3. 修改grpc-reality伪装域名"
 skyblue "------------"
 purple "${purple}4. 返回主菜单"
 skyblue "------------"
 reading "请输入选择: " choice
 case "${choice}" in
     1)
-        echo ""
-        green "1. 修改ARGO端口"
-        skyblue "------------"
-        green "2. 修改grpc-reality端口"
-        skyblue "------------"
-        purple "3. 返回上一级菜单"
-        skyblue "------------"
-        reading "请输入选择: " choice
-        case "${choice}" in
-            1)  
-                reading "\n请输入ARGO端口 (回车跳过将使用随机端口): " argo_port
-                [ -z "$argo_port" ] && argo_port=$(shuf -i 8000-9000 -n 1)
-                green "你的ARGO端口为：$argo_port"
-                sed -i "5s/[0-9]\{1,5\}/$argo_port/" /etc/xray/config.json
-                if [ -e "/etc/xray/tunnel.yml" ]; then
-                    sed -i 's|\(service: http://localhost:\)[0-9]\{1,5\}|\1'"$argo_port"'|' /etc/xray/tunnel.yml
-                else
-                    if grep -q '--url http://localhost' /etc/init.d/tunnel 2>/dev/null || grep -q 'ExecStart=.*--url http://localhost' /etc/systemd/system/tunnel.service 2>/dev/null; then
-                        sed -i 's|\(http://localhost:\)[0-9]\{1,5\}|\1'"$argo_port"'|' /etc/systemd/system/tunnel.service
-                        restart_argo
-                        get_quick_tunnel
-                        change_argo_domain
-                    else
-                        yellow "你当前使用固定隧道隧道token，请在cloudflared后台修改隧道端口为：$argo_port"
-                        restart_argo
-                    fi
-                fi
-                green "ARGO 端口已修改\n"
-                ;;
-            2)
-                reading "\n请输入grpc-reality端口 (回车跳过将使用随机端口): " new_port
-                [ -z "$new_port" ] && new_port=$(shuf -i 2000-65000 -n 1)
-                until [[ -z $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$new_port") ]]; do
-                    if [[ -n $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$new_port") ]]; then
-                        echo -e "${red}${new_port}端口已经被其他程序占用，请更换端口重试${re}"
-                        reading "请输入新的订阅端口(1-65535):" new_port
-                        [[ -z $new_port ]] && new_port=$(shuf -i 2000-65000 -n 1)
-                    fi
-                done
-                sed -i "41s/\"port\":\s*[0-9]\+/\"port\": $new_port/" /etc/xray/config.json
-                restart_xray
-                sed -i '1s/\(vless:\/\/[^@]*@[^:]*:\)[0-9]\{1,\}/\1'"$new_port"'/' $client_dir
-                base64 -w0 $client_dir > /etc/xray/sub.txt
-                while IFS= read -r line; do yellow "$line"; done < ${work_dir}/url.txt
-                green "\nGRPC-reality端口已修改成：${purple}$new_port${re} ${green}请更新订阅或手动更改grpc-reality节点端口${re}\n"
-                ;;
-            3)  change_config ;;
-            *)  red "无效的选项，请输入 1 到 3" ;;
-        esac
-        ;;
-    2)
         reading "\n请输入新的UUID: " new_uuid
-        [ -z "$new_uuid" ] && new_uuid=$(cat /proc/sys/kernel/random/uuid)
+        [ -z "$new_uuid" ] && new_uuid=$(cat /proc/sys/kernel/random/uuid) && green "\n生成的UUID为：$new_uuid"
         sed -i "s/[a-fA-F0-9]\{8\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{12\}/$new_uuid/g" $config_dir
         restart_xray
         sed -i "s/[a-fA-F0-9]\{8\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{4\}-[a-fA-F0-9]\{12\}/$new_uuid/g" $client_dir
@@ -782,6 +735,23 @@ case "${choice}" in
         base64 -w0 $client_dir > /etc/xray/sub.txt
         while IFS= read -r line; do yellow "$line"; done < $client_dir
         green "\nUUID已修改为：${purple}${new_uuid}${re} ${green}请更新订阅或手动更改所有节点的UUID${re}\n"
+        ;;
+    2)
+        reading "\n请输入grpc-reality端口 (回车跳过将使用随机端口): " new_port
+        [ -z "$new_port" ] && new_port=$(shuf -i 2000-65000 -n 1)
+        until [[ -z $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$new_port") ]]; do
+            if [[ -n $(netstat -tuln | grep -w tcp | awk '{print $4}' | sed 's/.*://g' | grep -w "$new_port") ]]; then
+                echo -e "${red}${new_port}端口已经被其他程序占用，请更换端口重试${re}"
+                reading "请输入新的订阅端口(1-65535):" new_port
+                [[ -z $new_port ]] && new_port=$(shuf -i 2000-65000 -n 1)
+            fi
+        done
+        sed -i "41s/\"port\":\s*[0-9]\+/\"port\": $new_port/" /etc/xray/config.json
+        restart_xray
+        sed -i '1s/\(vless:\/\/[^@]*@[^:]*:\)[0-9]\{1,\}/\1'"$new_port"'/' $client_dir
+        base64 -w0 $client_dir > /etc/xray/sub.txt
+        while IFS= read -r line; do yellow "$line"; done < ${work_dir}/url.txt
+        green "\nGRPC-reality端口已修改成：${purple}$new_port${re} ${green}请更新订阅或手动更改grpc-reality节点端口${re}\n"
         ;;
     3)  
         clear
@@ -1008,14 +978,17 @@ fi
 get_quick_tunnel() {
 restart_argo
 yellow "获取临时argo域名中，请稍等...\n"
-sleep 6
+sleep 3
 if [ -f /etc/xray/argo.log ]; then
-    get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
-    [ -z "$get_argodomain" ] && sleep 2 && get_argodomain=$(grep -oP '(?<=https://)[^\s]+trycloudflare\.com' /etc/xray/argo.log)
-    [ -z "$get_argodomain" ] && restart_argo && sleep 6 && get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
-    [ -z "$get_argodomain" ] && red "未能获取到Argo临时域名,请重新获取或使用固定隧道\n"
+  for i in {1..5}; do
+      get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
+      [ -n "$get_argodomain" ] && break
+      sleep 2
+  done
 else
-    restart_argo && sleep 8 && get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
+  restart_argo
+  sleep 6
+  get_argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' /etc/xray/argo.log)
 fi
 green "ArgoDomain：${purple}$get_argodomain${re}\n"
 ArgoDomain=$get_argodomain
@@ -1040,7 +1013,7 @@ change_argo_domain() {
 
     while IFS= read -r line; do echo -e "${purple}$line"; done < "$client_dir"
     
-    green "\nv节点已更新,更新订阅或手动复制以上节点\n"
+    green "\n节点已更新,更新订阅或手动复制以上节点\n"
 }
 
 # 查看节点信息和订阅链接
@@ -1114,7 +1087,7 @@ while true; do
                     exit 1 
                 fi
 
-                sleep 5
+                sleep 3
                 get_info
                 add_caddy_conf
                 create_shortcut
