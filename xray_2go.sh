@@ -1064,7 +1064,7 @@ while true; do
    echo  "==============="
    red "0. 退出脚本"
    echo "==========="
-   reading "请输入选择(0-8): " choice
+   reading "请输入选择(0-9): " choice
    echo ""
    case "${choice}" in
         1)  
