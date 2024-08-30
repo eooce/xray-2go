@@ -338,6 +338,7 @@ get_info() {
 
   if [ -f "${work_dir}/argo.log" ]; then
       for i in {1..5}; do
+          purple "第 $i 次尝试获取ArgoDoamin中..."
           argodomain=$(sed -n 's|.*https://\([^/]*trycloudflare\.com\).*|\1|p' "${work_dir}/argo.log")
           [ -n "$argodomain" ] && break
           sleep 2
