@@ -89,7 +89,7 @@ manage_packages() {
             fi
             yellow "正在安装 ${package}..."
             if command -v apt &>/dev/null; then
-                apt install -y "$package"
+                DEBIAN_FRONTEND=noninteractive apt install -y "$package"
             elif command -v dnf &>/dev/null; then
                 dnf install -y "$package"
             elif command -v yum &>/dev/null; then
@@ -370,14 +370,14 @@ echo ""
 # 处理ubuntu系统中没有caddy源的问题
 install_caddy () {
 if [ -f /etc/os-release ] && (grep -q "Ubuntu" /etc/os-release || grep -q "Debian GNU/Linux 11" /etc/os-release); then
-    purple "安装依赖中...\n" && yellow "如果是Ubuntu系统，安装过程中若弹出窗口，回车确认即可"
+    purple "安装依赖中...\n"
     apt install -y debian-keyring debian-archive-keyring apt-transport-https
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
     rm /etc/apt/trusted.gpg.d/caddy-stable.asc /usr/share/keyrings/caddy-archive-keyring.gpg 2>/dev/null
     curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-archive-keyring.gpg
     echo "deb [signed-by=/usr/share/keyrings/caddy-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" | tee /etc/apt/sources.list.d/caddy-stable.list
-    apt update -y && manage_packages install caddy
+    DEBIAN_FRONTEND=noninteractive apt update -y && manage_packages install caddy
 else
     manage_packages install caddy 
 fi
