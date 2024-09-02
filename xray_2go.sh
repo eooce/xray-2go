@@ -171,12 +171,8 @@ install_xray() {
     GRPC_PORT=$((PORT + 1))
 
     # 关闭防火墙
-    iptables -A INPUT -p tcp --dport 8080 -j ACCEPT > /dev/null 2>&1
-    iptables -A INPUT -p tcp --dport $GRPC_PORT -j ACCEPT > /dev/null 2>&1
-    iptables -P FORWARD ACCEPT > /dev/null 2>&1 
-    iptables -P OUTPUT ACCEPT > /dev/null 2>&1
-    iptables -F > /dev/null 2>&1
-    manage_packages uninstall ufw firewalld iptables-persistent iptables-services > /dev/null 2>&1
+    iptables -F > /dev/null 2>&1 && iptables -P INPUT ACCEPT > /dev/null 2>&1 && iptables -P FORWARD ACCEPT > /dev/null 2>&1 && iptables -P OUTPUT ACCEPT > /dev/null 2>&1
+    command -v ip6tables &> /dev/null && ip6tables -F > /dev/null 2>&1 && ip6tables -P INPUT ACCEPT > /dev/null 2>&1 && ip6tables -P FORWARD ACCEPT > /dev/null 2>&1 && ip6tables -P OUTPUT ACCEPT > /dev/null 2>&1
 
     output=$(/etc/xray/xray x25519)
     private_key=$(echo "$output" | grep "Private key" | awk '{print $3}')
