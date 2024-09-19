@@ -1036,9 +1036,9 @@ while true; do
    check_xray &>/dev/null; check_xray=$?
    check_caddy &>/dev/null; check_caddy=$?
    check_argo &>/dev/null; check_argo=$?
-   check_xray_status=$(check_xray)
-   check_caddy_status=$(check_caddy)
-   check_argo_status=$(check_argo)
+   check_xray_status=$(check_xray) > /dev/null 2>&1
+   check_caddy_status=$(check_caddy) > /dev/null 2>&1
+   check_argo_status=$(check_argo) > /dev/null 2>&1
    clear
    echo ""
    purple "=== 老王Xray-2go一键安装脚本 ===\n"
@@ -1068,7 +1068,7 @@ while true; do
                 yellow "Xray-2go 已经安装！"
             else
                 install_caddy
-                manage_packages install jq unzip iptables openssl
+                manage_packages install jq unzip iptables openssl coreutils
                 install_xray
 
                 if [ -x "$(command -v systemctl)" ]; then
