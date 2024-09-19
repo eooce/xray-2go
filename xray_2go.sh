@@ -1017,8 +1017,8 @@ check_nodes() {
 if [ ${check_xray} -eq 0 ]; then
     while IFS= read -r line; do purple "${purple}$line"; done < ${work_dir}/url.txt
     server_ip=$(get_realip)
-    sub_port=$(grep -oP ':\K[0-9]+' /etc/caddy/Caddyfile)
-    lujing=$(grep -oP 'handle /\K[a-zA-Z0-9]+' /etc/caddy/Caddyfile)
+    sub_port=$(sed -n 's/.*:\([0-9]\+\).*/\1/p' /etc/caddy/Caddyfile)
+    lujing=$(sed -n 's/.*handle \/\([a-zA-Z0-9]\+\).*/\1/p' /etc/caddy/Caddyfile)
     green "\n\n节点订阅链接：http://$server_ip:$sub_port/$lujing\n"
 else 
     yellow "Xray-2go 尚未安装或未运行,请先安装或启动Xray-2go"
